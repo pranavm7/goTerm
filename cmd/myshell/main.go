@@ -19,6 +19,17 @@ func ReadUserInput() string {
 	return message
 }
 
+func ListBuiltins(arg string) {
+	supportedCommands := []string{"echo", "exit"}
+	for _, v := range supportedCommands {
+		if v == arg {
+			fmt.Printf("%s is a shell builtin\n", v)
+			return
+		}
+	}
+	fmt.Printf("%s: not found\n", arg)
+}
+
 func CheckCommand(command string) {
 	commandList := strings.Split(command, " ")
 	// Check for exit
@@ -32,6 +43,8 @@ func CheckCommand(command string) {
 		os.Exit(int(code))
 	case "echo":
 		fmt.Println(strings.Join(commandList[1:], " "))
+	case "type":
+		ListBuiltins(commandList[1])
 	default:
 		_, err := fmt.Printf("%s: command not found\n", commandList[0])
 		if err != nil {
