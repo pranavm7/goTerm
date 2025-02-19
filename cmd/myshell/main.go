@@ -18,5 +18,7 @@ func main() {
 	reader:= bufio.NewReader(os.Stdin)
 	message,_:=  reader.ReadString('\n')
 	message= strings.ReplaceAll(message,"\r\n","")
-	fmt.Fprintf(os.Stdout,  "%s: Command not found\n",message)
+	message= fmt.Sprintf("%s: Command not found",message)
+	//fmt.Fprintf(os.Stdout,  "%s: Command not found",message)
+	io.WriteString(os.Stdout,message)
 }
