@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
-	//"golang.org/x/text/message"
 )
 
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
@@ -20,10 +20,24 @@ func ReadUserInput() string {
 }
 
 func CheckCommand(command string) {
+	commandList := strings.Split(command, " ")
 	// Check for exit
-	switch command {
-	case "exit 0":
-		os.Exit(0)
+	switch commandList[0] {
+	case "exit":
+		code, err := strconv.ParseInt(commandList[1], 10, 16)
+		if err != nil {
+			fmt.Print(err)
+			os.Exit(1)
+		}
+		os.Exit(int(code))
+	case "echo":
+		fmt.Println(strings.Join(commandList[1:], " "))
+	default:
+		_, err := fmt.Printf("%s: command not found\n", commandList[0])
+		if err != nil {
+			fmt.Print(err)
+			os.Exit(1)
+		}
 	}
 }
 
@@ -32,18 +46,9 @@ func REPL() {
 	// Using scanner to read the input instead:
 	message := ReadUserInput()
 	CheckCommand(message)
-	message = fmt.Sprintf("%s: command not found", message)
-	_, _ = fmt.Println(message)
 }
 
 func main() {
-	// Uncomment this block to pass the first stage
-	// fmt.Fprint(os.Stdout, "$ ")
-
-	// // Using scanner to read the input instead:
-	// message:= ReadUserInput()
-	// message= fmt.Sprintf("%s: command not found",message)
-	// _,_ =fmt.Println(message)
 	for {
 		REPL()
 	}
