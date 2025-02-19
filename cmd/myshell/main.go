@@ -20,7 +20,7 @@ func ReadUserInput() string {
 }
 
 func ListBuiltins(arg string) {
-	supportedCommands := []string{"echo", "exit"}
+	supportedCommands := []string{"echo", "exit", "type"}
 	for _, v := range supportedCommands {
 		if v == arg {
 			fmt.Printf("%s is a shell builtin\n", v)
