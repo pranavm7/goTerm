@@ -20,5 +20,5 @@ func main() {
 	message= strings.ReplaceAll(message,"\r\n","")
 	message= fmt.Sprintf("%s: Command not found",message)
 	//fmt.Fprintf(os.Stdout,  "%s: Command not found",message)
-	io.WriteString(os.Stdout,message)
+	_,_ =fmt.Println(message)
 }
