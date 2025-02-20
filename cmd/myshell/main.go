@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -37,7 +38,6 @@ func ListBuiltins(arg string) {
 		}
 	}
 	if pathIsSet {
-		// TODO: Write a lookup to the execCache
 		if val, ok := pathCommands.Load(arg); ok {
 			fmt.Printf("%s is %s", arg, val)
 			return
@@ -45,6 +45,26 @@ func ListBuiltins(arg string) {
 
 	}
 	fmt.Printf("%s: not found\n", arg)
+}
+
+func ExecCommand(commandList []string) {
+	fmt.Printf("Program was passed %d args (including program name).\nArg #0 (program name): %s\nArg #1: %s\n", len(commandList), commandList[0], commandList[1])
+	// for num, each := range commandList {
+	// 	if num == 0 {
+	// 		fmt.Printf("Arg #%d (program name): %s\n", num, each)
+	// 		continue
+	// 	}
+	// 	fmt.Printf("Arg #%d: %s\n", num, each)
+	// }
+	cmd := exec.Command(commandList[0], commandList[1:]...)
+	out, err := cmd.Output()
+	if err == nil {
+		fmt.Println(string(out))
+	}
+	if err != nil {
+		fmt.Println(err)
+	}
+
 }
 
 func CheckCommand(command string) {
@@ -63,6 +83,14 @@ func CheckCommand(command string) {
 	case "type":
 		ListBuiltins(commandList[1])
 	default:
+		if pathIsSet {
+			// check if command exists in path
+			if _, ok := pathCommands.Load(commandList[0]); ok {
+				// proceed to be verbose about input
+				ExecCommand(commandList)
+				return
+			}
+		}
 		_, err := fmt.Printf("%s: command not found\n", commandList[0])
 		if err != nil {
 			fmt.Print(err)
@@ -81,7 +109,7 @@ func REPL() {
 func main() {
 	if pathIsSet {
 		operatingSystem := runtime.GOOS
-		pathDirs := []string{}
+		var pathDirs []string
 		switch operatingSystem {
 		case "windows":
 			pathDirs = strings.Split(pathVal, ";")
@@ -90,8 +118,6 @@ func main() {
 		default:
 			pathDirs = strings.Split(pathVal, ":")
 		}
-		// pathDirs := strings.Split(pathVal, ":")
-		// TODO: Call the goroutines to list all the executables and add to a mutex
 		var wg sync.WaitGroup
 		// number of routines to spawn
 		numRoutines := len(pathDirs)
