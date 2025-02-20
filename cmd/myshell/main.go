@@ -5,7 +5,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"runtime"
 	"strconv"
@@ -104,12 +103,14 @@ func main() {
 				dir := pathDirs[v]
 				files, err := os.ReadDir(dir)
 				if err != nil {
-					log.Fatal(err)
+					return
 				}
 				// Adds to the map in the following format:
 				// "executableName":"path/to/executable"
+				// Using Load or Store instead of just Store to overwrite to latest exe
 				for _, file := range files {
-					pathCommands.Store(file.Name(), fmt.Sprintf("%s%s", dir, file.Name()))
+					pathCommands.LoadOrStore(file.Name(), fmt.Sprintf("%s/%s\n", dir, file.Name()))
+
 				}
 
 			}(v)
