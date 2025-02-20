@@ -21,10 +21,18 @@ func ReadUserInput() string {
 
 func ListBuiltins(arg string) {
 	supportedCommands := []string{"echo", "exit", "type"}
+	// Check in PATH
+	pathVal, pathIsSet := os.LookupEnv("PATH")
 	for _, v := range supportedCommands {
 		if v == arg {
 			fmt.Printf("%s is a shell builtin\n", v)
 			return
+		}
+	}
+	if pathIsSet {
+		pathDirs := strings.Split(pathVal, ":")
+		for _, pathDirectory := range pathDirs {
+			// TODO: Iterate over paths
 		}
 	}
 	fmt.Printf("%s: not found\n", arg)
@@ -54,9 +62,9 @@ func CheckCommand(command string) {
 	}
 }
 
+// building the READ EVAL PRINT LOOP
 func REPL() {
 	fmt.Fprint(os.Stdout, "$ ")
-	// Using scanner to read the input instead:
 	message := ReadUserInput()
 	CheckCommand(message)
 }
