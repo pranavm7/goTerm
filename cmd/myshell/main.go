@@ -1,5 +1,7 @@
 package main
 
+// TODO: Create an asynchronous goroutine that creates a key value map of each executable and the path at which it is stored if the "PATH" env var is set.
+
 import (
 	"bufio"
 	"fmt"
@@ -11,6 +13,9 @@ import (
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
 var _ = fmt.Fprint
 
+// Check in PATH
+var pathVal, pathIsSet = os.LookupEnv("PATH")
+
 func ReadUserInput() string {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
@@ -21,8 +26,7 @@ func ReadUserInput() string {
 
 func ListBuiltins(arg string) {
 	supportedCommands := []string{"echo", "exit", "type"}
-	// Check in PATH
-	pathVal, pathIsSet := os.LookupEnv("PATH")
+
 	for _, v := range supportedCommands {
 		if v == arg {
 			fmt.Printf("%s is a shell builtin\n", v)
@@ -30,6 +34,8 @@ func ListBuiltins(arg string) {
 		}
 	}
 	if pathIsSet {
+		// TODO: Write a lookup to the execCache
+		// Get a list of path directories.
 		pathDirs := strings.Split(pathVal, ":")
 		for _, pathDirectory := range pathDirs {
 			// TODO: Iterate over paths
@@ -70,6 +76,10 @@ func REPL() {
 }
 
 func main() {
+	if pathIsSet {
+		// TODO: Call the goroutines to list all the executables and add to a mutex
+
+	}
 	for {
 		REPL()
 	}
