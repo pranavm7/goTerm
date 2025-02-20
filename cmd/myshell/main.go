@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -80,7 +81,17 @@ func REPL() {
 
 func main() {
 	if pathIsSet {
-		pathDirs := strings.Split(pathVal, ":")
+		operatingSystem := runtime.GOOS
+		pathDirs := []string{}
+		switch operatingSystem {
+		case "windows":
+			pathDirs = strings.Split(pathVal, ";")
+		case "linux":
+			pathDirs = strings.Split(pathVal, ":")
+		default:
+			pathDirs = strings.Split(pathVal, ":")
+		}
+		// pathDirs := strings.Split(pathVal, ":")
 		// TODO: Call the goroutines to list all the executables and add to a mutex
 		var wg sync.WaitGroup
 		// number of routines to spawn
@@ -91,7 +102,7 @@ func main() {
 				defer wg.Done()
 				//get source dir
 				dir := pathDirs[v]
-				files, err := os.ReadDir(".")
+				files, err := os.ReadDir(dir)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -104,7 +115,7 @@ func main() {
 			}(v)
 		}
 		wg.Wait()
-		// // printing output
+		// printing output
 		// m := map[string]interface{}{}
 		// pathCommands.Range(func(key, value interface{}) bool {
 		// 	m[fmt.Sprint(key)] = value
@@ -116,8 +127,12 @@ func main() {
 		// 	panic(err)
 		// }
 		// fmt.Println(string(b))
-
+		// fmt.Println()
+		// fmt.Println(pathDirs)
+		// fmt.Println()
+		// fmt.Println(pathVal)
 	}
+
 	for {
 		REPL()
 	}
