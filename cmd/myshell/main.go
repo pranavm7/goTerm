@@ -5,9 +5,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
@@ -15,6 +17,7 @@ var _ = fmt.Fprint
 
 // Check in PATH
 var pathVal, pathIsSet = os.LookupEnv("PATH")
+var pathCommands sync.Map
 
 func ReadUserInput() string {
 	scanner := bufio.NewScanner(os.Stdin)
@@ -35,11 +38,11 @@ func ListBuiltins(arg string) {
 	}
 	if pathIsSet {
 		// TODO: Write a lookup to the execCache
-		// Get a list of path directories.
-		pathDirs := strings.Split(pathVal, ":")
-		for _, pathDirectory := range pathDirs {
-			// TODO: Iterate over paths
+		if val, ok := pathCommands.Load(arg); ok {
+			fmt.Printf("%s is %s", arg, val)
+			return
 		}
+
 	}
 	fmt.Printf("%s: not found\n", arg)
 }
@@ -77,7 +80,42 @@ func REPL() {
 
 func main() {
 	if pathIsSet {
+		pathDirs := strings.Split(pathVal, ":")
 		// TODO: Call the goroutines to list all the executables and add to a mutex
+		var wg sync.WaitGroup
+		// number of routines to spawn
+		numRoutines := len(pathDirs)
+		wg.Add(numRoutines)
+		for v := range numRoutines {
+			go func(v int) {
+				defer wg.Done()
+				//get source dir
+				dir := pathDirs[v]
+				files, err := os.ReadDir(".")
+				if err != nil {
+					log.Fatal(err)
+				}
+				// Adds to the map in the following format:
+				// "executableName":"path/to/executable"
+				for _, file := range files {
+					pathCommands.Store(file.Name(), fmt.Sprintf("%s%s", dir, file.Name()))
+				}
+
+			}(v)
+		}
+		wg.Wait()
+		// // printing output
+		// m := map[string]interface{}{}
+		// pathCommands.Range(func(key, value interface{}) bool {
+		// 	m[fmt.Sprint(key)] = value
+		// 	return true
+		// })
+
+		// b, err := json.MarshalIndent(m, "", " ")
+		// if err != nil {
+		// 	panic(err)
+		// }
+		// fmt.Println(string(b))
 
 	}
 	for {
