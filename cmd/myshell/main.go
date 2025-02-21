@@ -29,7 +29,7 @@ func ReadUserInput() string {
 }
 
 func ListBuiltins(arg string) {
-	supportedCommands := []string{"echo", "exit", "type"}
+	supportedCommands := []string{"echo", "exit", "type", "pwd"}
 
 	for _, v := range supportedCommands {
 		if v == arg {
@@ -90,6 +90,11 @@ func CheckCommand(command string) {
 		fmt.Println(strings.Join(commandList[1:], " "))
 	case "type":
 		ListBuiltins(commandList[1])
+	case "pwd":
+		if pwd, ok := os.Getwd(); ok == nil {
+			fmt.Fprintln(os.Stdout, pwd)
+		}
+
 	default:
 		if pathIsSet {
 			// fmt.Println("[DEBUG]: switch hit default.")
