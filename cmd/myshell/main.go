@@ -29,7 +29,7 @@ func ReadUserInput() string {
 }
 
 func ListBuiltins(arg string) {
-	supportedCommands := []string{"echo", "exit", "type", "pwd"}
+	supportedCommands := []string{"echo", "exit", "type", "pwd", "cd"}
 
 	for _, v := range supportedCommands {
 		if v == arg {
@@ -93,6 +93,18 @@ func CheckCommand(command string) {
 	case "pwd":
 		if pwd, ok := os.Getwd(); ok == nil {
 			fmt.Fprintln(os.Stdout, pwd)
+		}
+	case "cd":
+		if len(commandList[1:]) == 1 {
+			err := os.Chdir(commandList[1])
+			if err != nil {
+				customErr := strings.Split(err.Error(), " ")
+				// This is a little inappropriate but conforming to codecrafters for now
+				customErr[0] = "cd:"
+				customErr[2] = "No"
+				outString := strings.Join(customErr, " ")
+				fmt.Fprintln(os.Stdout, outString)
+			}
 		}
 
 	default:
