@@ -39,7 +39,7 @@ func ListBuiltins(arg string) {
 	}
 	if pathIsSet {
 		if val, ok := pathCommands.Load(arg); ok {
-			fmt.Printf("%s is %s", arg, val)
+			fmt.Printf("%s is %s\n", arg, val)
 			return
 		}
 
@@ -48,23 +48,31 @@ func ListBuiltins(arg string) {
 }
 
 func ExecCommand(commandList []string) {
-	fmt.Printf("Program was passed %d args (including program name).\nArg #0 (program name): %s\nArg #1: %s\n", len(commandList), commandList[0], commandList[1])
-	// for num, each := range commandList {
-	// 	if num == 0 {
-	// 		fmt.Printf("Arg #%d (program name): %s\n", num, each)
-	// 		continue
-	// 	}
-	// 	fmt.Printf("Arg #%d: %s\n", num, each)
-	// }
 	cmd := exec.Command(commandList[0], commandList[1:]...)
 	out, err := cmd.Output()
+	output := string(out)
+	output = strings.Replace(output, "\n", "", 0)
 	if err == nil {
-		fmt.Println(string(out))
+		// fmt.Println(string(out))
+		fmt.Fprint(os.Stdout, output)
 	}
 	if err != nil {
 		fmt.Println(err)
 	}
+	//fmt.Println("EXITING EXEC COMMAND")
+}
 
+func VerboseCommand(commandList []string) {
+	//fmt.Printf("Program was passed %d args (including program name).\n", len(commandList))
+	fmt.Fprintf(os.Stdout, "Program was passed %d args (including program name).\n", len(commandList))
+	for num, each := range commandList {
+		if num == 0 {
+			fmt.Fprintf(os.Stdout, "Arg #%d (program name): %s\n", num, each)
+			continue
+		}
+		fmt.Fprintf(os.Stdout, "Arg #%d: %s\n", num, each)
+	}
+	// fmt.Println("EXITING VERBOSE COMMAND")
 }
 
 func CheckCommand(command string) {
@@ -84,9 +92,11 @@ func CheckCommand(command string) {
 		ListBuiltins(commandList[1])
 	default:
 		if pathIsSet {
+			// fmt.Println("[DEBUG]: switch hit default.")
 			// check if command exists in path
 			if _, ok := pathCommands.Load(commandList[0]); ok {
 				// proceed to be verbose about input
+				// VerboseCommand(commandList)
 				ExecCommand(commandList)
 				return
 			}
@@ -103,6 +113,7 @@ func CheckCommand(command string) {
 func REPL() {
 	fmt.Fprint(os.Stdout, "$ ")
 	message := ReadUserInput()
+	// fmt.Println("[DEBUG]: in REPL")
 	CheckCommand(message)
 }
 
@@ -135,29 +146,13 @@ func main() {
 				// "executableName":"path/to/executable"
 				// Using Load or Store instead of just Store to overwrite to latest exe
 				for _, file := range files {
-					pathCommands.LoadOrStore(file.Name(), fmt.Sprintf("%s/%s\n", dir, file.Name()))
+					pathCommands.LoadOrStore(file.Name(), fmt.Sprintf("%s/%s", dir, file.Name()))
 
 				}
 
 			}(v)
 		}
 		wg.Wait()
-		// printing output
-		// m := map[string]interface{}{}
-		// pathCommands.Range(func(key, value interface{}) bool {
-		// 	m[fmt.Sprint(key)] = value
-		// 	return true
-		// })
-
-		// b, err := json.MarshalIndent(m, "", " ")
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// fmt.Println(string(b))
-		// fmt.Println()
-		// fmt.Println(pathDirs)
-		// fmt.Println()
-		// fmt.Println(pathVal)
 	}
 
 	for {
