@@ -1,6 +1,6 @@
 package main
 
-// TODO: Create an asynchronous goroutine that creates a key value map of each executable and the path at which it is stored if the "PATH" env var is set.
+// TODO: Only allow a single space between single quote chars
 
 import (
 	"bufio"
@@ -77,7 +77,13 @@ func VerboseCommand(commandList []string) {
 }
 
 func CheckCommand(command string) {
+	//commandList := strings.Split(strings.ReplaceAll(command, "'", ""), " ")
 	commandList := strings.Split(command, " ")
+	if len(commandList) > 2 {
+		for x, v := range commandList {
+			fmt.Fprintln(os.Stdout, x, ":", v)
+		}
+	}
 	// Check for exit
 	switch commandList[0] {
 	case "exit":
