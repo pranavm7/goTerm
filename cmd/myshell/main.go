@@ -18,6 +18,7 @@ var _ = fmt.Fprint
 
 // Check in PATH
 var pathVal, pathIsSet = os.LookupEnv("PATH")
+var envHome, homeIsSet = os.LookupEnv("HOME")
 var pathCommands sync.Map
 
 func ReadUserInput() string {
@@ -96,6 +97,21 @@ func CheckCommand(command string) {
 		}
 	case "cd":
 		if len(commandList[1:]) == 1 {
+			if commandList[1] == "~" {
+				if homeIsSet {
+					err := os.Chdir(envHome)
+					if err != nil {
+						customErr := strings.Split(err.Error(), " ")
+						// This is a little inappropriate but conforming to codecrafters for now
+						customErr[0] = "cd:"
+						customErr[2] = "No"
+						outString := strings.Join(customErr, " ")
+						fmt.Fprintln(os.Stdout, outString)
+						return
+					}
+					return
+				}
+			}
 			err := os.Chdir(commandList[1])
 			if err != nil {
 				customErr := strings.Split(err.Error(), " ")
@@ -104,6 +120,7 @@ func CheckCommand(command string) {
 				customErr[2] = "No"
 				outString := strings.Join(customErr, " ")
 				fmt.Fprintln(os.Stdout, outString)
+				return
 			}
 		}
 
