@@ -1,6 +1,6 @@
 package main
 
-// TODO: Only allow a single space between single quote chars
+// TODO: Only allow a single space between non quoted args
 
 import (
 	"bufio"
@@ -20,6 +20,25 @@ var _ = fmt.Fprint
 var pathVal, pathIsSet = os.LookupEnv("PATH")
 var envHome, homeIsSet = os.LookupEnv("HOME")
 var pathCommands sync.Map
+
+func EchoFormatter(printList []string) {
+	// fmt.Print(printList)
+	checkString := strings.Join(printList, " ")
+	if strings.ContainsAny(checkString, "'") {
+		// arg has single quotes
+		fmt.Println(strings.ReplaceAll(strings.Join(printList, " "), "'", ""))
+		return
+	}
+	filteredList := []string{}
+	for _, v := range printList {
+		if v == " " {
+			continue
+		}
+		filteredList = append(filteredList, v)
+	}
+	fmt.Println(strings.Join(filteredList, " "))
+	// TODO: Ensure that there is only a single space between non-quoted args
+}
 
 func ReadUserInput() string {
 	scanner := bufio.NewScanner(os.Stdin)
@@ -49,13 +68,14 @@ func ListBuiltins(arg string) {
 }
 
 func ExecCommand(commandList []string) {
-	cmd := exec.Command(commandList[0], commandList[1:]...)
+	args := strings.ReplaceAll(strings.Join(commandList[1:], " "), "'", "")
+	cmd := exec.Command(commandList[0], args)
 	out, err := cmd.Output()
 	output := string(out)
 	output = strings.Replace(output, "\n", "", 0)
 	if err == nil {
 		// fmt.Println(string(out))
-		fmt.Fprint(os.Stdout, output)
+		fmt.Fprintln(os.Stdout, output)
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -79,11 +99,11 @@ func VerboseCommand(commandList []string) {
 func CheckCommand(command string) {
 	//commandList := strings.Split(strings.ReplaceAll(command, "'", ""), " ")
 	commandList := strings.Split(command, " ")
-	if len(commandList) > 2 {
-		for x, v := range commandList {
-			fmt.Fprintln(os.Stdout, x, ":", v)
-		}
-	}
+	// if len(commandList) > 2 {
+	// 	for x, v := range commandList {
+	// 		fmt.Fprintln(os.Stdout, x, ":", v)
+	// 	}
+	// }
 	// Check for exit
 	switch commandList[0] {
 	case "exit":
@@ -94,7 +114,8 @@ func CheckCommand(command string) {
 		}
 		os.Exit(int(code))
 	case "echo":
-		fmt.Println(strings.Join(commandList[1:], " "))
+		// fmt.Println(strings.Join(commandList[1:], " "))
+		EchoFormatter(commandList[1:])
 	case "type":
 		ListBuiltins(commandList[1])
 	case "pwd":
