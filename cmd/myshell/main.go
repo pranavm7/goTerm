@@ -31,7 +31,7 @@ func EchoFormatter(printList []string) {
 	}
 	filteredList := []string{}
 	for _, v := range printList {
-		if v == " " {
+		if v == "" {
 			continue
 		}
 		filteredList = append(filteredList, v)
