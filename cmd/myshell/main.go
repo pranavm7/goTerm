@@ -1,6 +1,6 @@
 package main
 
-// TODO: Extract the single quote argument parsing to a function to enable better arg separation.
+// TODO: EchoFormatter needs to accept the updated arglist
 
 import (
 	"bufio"
@@ -20,6 +20,35 @@ var _ = fmt.Fprint
 var pathVal, pathIsSet = os.LookupEnv("PATH")
 var envHome, homeIsSet = os.LookupEnv("HOME")
 var pathCommands sync.Map
+
+func ExtractArgs(argString string) []string {
+	var argsList []string
+	toggleCapture := false
+	// Check if the args contain single quotes
+	if strings.ContainsRune(argString, '\'') {
+		// arg collector buffer
+		var arg strings.Builder
+		for _, v := range argString {
+			// toggle capture switch
+			if v == '\'' {
+				toggleCapture = !toggleCapture
+			}
+			// add character to buffer
+			if toggleCapture && v != '\'' {
+				arg.WriteRune(v)
+			}
+			// if buffer has an arg, append it to the list and then clear the buffer
+			if !toggleCapture && arg.Len() > 0 {
+				argsList = append(argsList, arg.String())
+				arg.Reset()
+			}
+		}
+	} else {
+		argsList = strings.Split(argString, " ")
+	}
+
+	return argsList
+}
 
 func EchoFormatter(printList []string) {
 	// fmt.Print(printList)
@@ -67,37 +96,7 @@ func ListBuiltins(arg string) {
 }
 
 func ExecuteCommand(binaryPath string, commandList []string) {
-	// args := strings.ReplaceAll(strings.Join(commandList[1:], " "), "'", "")
-	// fmt.Println(strings.Join(commandList[1:], ","))
-	args := strings.Join(commandList[1:], " ")
-	var argsList []string
-	toggleCapture := false
-	// Check if the args contain single quotes
-	if strings.ContainsRune(args, '\'') {
-		// arg collector buffer
-		var arg strings.Builder
-		for _, v := range args {
-			// toggle capture switch
-			if v == '\'' {
-				toggleCapture = !toggleCapture
-			}
-			// add character to buffer
-			if toggleCapture && v != '\'' {
-				arg.WriteRune(v)
-			}
-			// if buffer has an arg, append it to the list and then clear the buffer
-			if !toggleCapture && arg.Len() > 0 {
-				// arg.WriteRune('\'')
-				argsList = append(argsList, arg.String())
-				arg.Reset()
-			}
-		}
-	} else {
-		argsList = commandList[1:]
-	}
-	// fmt.Println(args)
-	// fmt.Println(strings.Join(argsList, ","))
-	cmd := exec.Command(binaryPath, argsList...)
+	cmd := exec.Command(binaryPath, commandList[1:]...)
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 	// output = strings.Replace(output, "\n", "", -1)
@@ -107,7 +106,6 @@ func ExecuteCommand(binaryPath string, commandList []string) {
 	}
 	if err != nil {
 		// fmt.Println(err)
-		fmt.Println(strings.Join(argsList, ","))
 		fmt.Fprintln(os.Stderr, err)
 	}
 	//fmt.Println("EXITING EXEC COMMAND")
@@ -135,6 +133,12 @@ func CheckCommand(command string) {
 	// 	}
 	// }
 	// Check for exit
+	executable := commandList[0]
+	args := ExtractArgs(strings.Join(commandList[1:], " "))
+	commandList = nil
+	commandList = append(commandList, executable)
+	commandList = append(commandList, args...)
+	// fmt.Println(strings.Join(commandList, ","))
 	switch commandList[0] {
 	case "exit":
 		code, err := strconv.ParseInt(commandList[1], 10, 16)
