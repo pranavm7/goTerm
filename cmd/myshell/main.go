@@ -1,6 +1,6 @@
 package main
 
-// TODO: Only allow a single space between non quoted args
+// TODO: Extract the single quote argument parsing to a function to enable better arg separation.
 
 import (
 	"bufio"
@@ -37,7 +37,6 @@ func EchoFormatter(printList []string) {
 		filteredList = append(filteredList, v)
 	}
 	fmt.Println(strings.Join(filteredList, " "))
-	// TODO: Ensure that there is only a single space between non-quoted args
 }
 
 func ReadUserInput() string {
@@ -67,18 +66,49 @@ func ListBuiltins(arg string) {
 	fmt.Printf("%s: not found\n", arg)
 }
 
-func ExecCommand(commandList []string) {
-	args := strings.ReplaceAll(strings.Join(commandList[1:], " "), "'", "")
-	cmd := exec.Command(commandList[0], args)
-	out, err := cmd.Output()
+func ExecuteCommand(binaryPath string, commandList []string) {
+	// args := strings.ReplaceAll(strings.Join(commandList[1:], " "), "'", "")
+	// fmt.Println(strings.Join(commandList[1:], ","))
+	args := strings.Join(commandList[1:], " ")
+	var argsList []string
+	toggleCapture := false
+	// Check if the args contain single quotes
+	if strings.ContainsRune(args, '\'') {
+		// arg collector buffer
+		var arg strings.Builder
+		for _, v := range args {
+			// toggle capture switch
+			if v == '\'' {
+				toggleCapture = !toggleCapture
+			}
+			// add character to buffer
+			if toggleCapture && v != '\'' {
+				arg.WriteRune(v)
+			}
+			// if buffer has an arg, append it to the list and then clear the buffer
+			if !toggleCapture && arg.Len() > 0 {
+				// arg.WriteRune('\'')
+				argsList = append(argsList, arg.String())
+				arg.Reset()
+			}
+		}
+	} else {
+		argsList = commandList[1:]
+	}
+	// fmt.Println(args)
+	// fmt.Println(strings.Join(argsList, ","))
+	cmd := exec.Command(binaryPath, argsList...)
+	out, err := cmd.CombinedOutput()
 	output := string(out)
-	output = strings.Replace(output, "\n", "", 0)
+	// output = strings.Replace(output, "\n", "", -1)
 	if err == nil {
-		// fmt.Println(string(out))
-		fmt.Fprintln(os.Stdout, output)
+		// fmt.Println(string(output))
+		fmt.Fprint(os.Stdout, output)
 	}
 	if err != nil {
-		fmt.Println(err)
+		// fmt.Println(err)
+		fmt.Println(strings.Join(argsList, ","))
+		fmt.Fprintln(os.Stderr, err)
 	}
 	//fmt.Println("EXITING EXEC COMMAND")
 }
@@ -155,10 +185,10 @@ func CheckCommand(command string) {
 		if pathIsSet {
 			// fmt.Println("[DEBUG]: switch hit default.")
 			// check if command exists in path
-			if _, ok := pathCommands.Load(commandList[0]); ok {
+			if binaryPath, ok := pathCommands.Load(commandList[0]); ok {
 				// proceed to be verbose about input
-				// VerboseCommand(commandList)
-				ExecCommand(commandList)
+				VerboseCommand(commandList)
+				ExecuteCommand(binaryPath.(string), commandList)
 				return
 			}
 		}
