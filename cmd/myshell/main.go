@@ -23,67 +23,34 @@ var pathCommands sync.Map
 
 func ExtractArgs(argString string) []string {
 	var argsList []string
+	var build strings.Builder
 	toggleCapture := false
 	for _, v := range argString {
 		// Instead of block check (implemented below), check per char
-		if v == ' ' && !toggleCapture{
+		if v == ' ' && !toggleCapture {
+			if build.Len() > 0 {
+				argsList = append(argsList, build.String())
+				build.Reset()
+			}
 			continue
-		} 
-		if v == '\''{
-			toggleCapture=!toggleCapture
 		}
+		if v == '\'' {
+			toggleCapture = !toggleCapture
+			continue
+		}
+		build.WriteRune(v)
+
 	}
-	// Check if the args contain single quotes
-	if strings.ContainsRune(argString, '\'') {
-		// arg collector buffer
-		var arg strings.Builder
-		for _, v := range argString {
-			// toggle capture switch
-			if v == '\'' {
-				toggleCapture = !toggleCapture
-			}
-			// add quoted character to buffer
-			if toggleCapture && v != '\'' {
-				arg.WriteRune(v)
-			}
-			// if buffer has an arg, append it to the list and then clear the buffer
-			if !toggleCapture && arg.Len() > 0 {
-				argsList = append(argsList, arg.String())
-				arg.Reset()
-			}
-		}
-	} else {
-		argsList = strings.Split(argString, " ")
+	if build.Len() > 0 {
+		argsList = append(argsList, build.String())
+		build.Reset()
 	}
 
 	return argsList
 }
 
 func EchoFormatter(printList []string) {
-	// fmt.Print(printList)
-	var builder strings.Builder
-	quoteSwitch := false
-	for _, each := range printList {
-		
-		if strings.ContainsRune(each, '\'') {
-			quoteSwitch = !quoteSwitch
-			builder.
-		}
-	}
-	// checkString := strings.Join(printList, " ")
-	// if strings.ContainsAny(checkString, "'") {
-	// 	// arg has single quotes
-	// 	fmt.Println(strings.ReplaceAll(strings.Join(printList, " "), "'", ""))
-	// 	return
-	// }
-	// filteredList := []string{}
-	// for _, v := range printList {
-	// 	if v == "" {
-	// 		continue
-	// 	}
-	// 	filteredList = append(filteredList, v)
-	// }
-	// fmt.Println(strings.Join(filteredList, " "))
+	fmt.Fprintln(os.Stdout, strings.Join(printList, " "))
 }
 
 func ReadUserInput() string {
@@ -99,18 +66,19 @@ func ListBuiltins(arg string) {
 
 	for _, v := range supportedCommands {
 		if v == arg {
-			fmt.Printf("%s is a shell builtin\n", v)
+			fmt.Fprintf(os.Stderr, "%s is a shell builtin\n", v)
 			return
 		}
 	}
 	if pathIsSet {
 		if val, ok := pathCommands.Load(arg); ok {
-			fmt.Printf("%s is %s\n", arg, val)
+			// pathCommands.Range(func(key, value any) bool { fmt.Println(key, value); return true })
+			fmt.Fprintf(os.Stderr, "%s is %s\n", arg, val)
 			return
 		}
 
 	}
-	fmt.Printf("%s: not found\n", arg)
+	fmt.Fprintf(os.Stderr, "%s: not found\n", arg)
 }
 
 func ExecuteCommand(binaryPath string, commandList []string) {
@@ -134,7 +102,23 @@ func VerboseCommand(commandList []string) {
 	fmt.Fprintf(os.Stdout, "Program was passed %d args (including program name).\n", len(commandList))
 	for num, each := range commandList {
 		if num == 0 {
-			fmt.Fprintf(os.Stdout, "Arg #%d (program name): %s\n", num, each)
+			if strings.ContainsRune(each, '/') || strings.ContainsRune(each, '\\') {
+				var progName string
+				var pathList []string
+				operatingSystem := runtime.GOOS
+				switch operatingSystem {
+				case "windows":
+					pathList = strings.SplitAfterN(each, "\\", 1)
+				case "linux":
+					pathList = strings.Split(each, "/")
+				default:
+					pathList = strings.Split(each, "/")
+				}
+				progName = pathList[len(pathList)-1]
+				fmt.Fprintf(os.Stdout, "Arg #0 (program name): %s\n", progName)
+			}
+			fmt.Fprintf(os.Stdout, "Arg #0 (program name): %s\n", commandList[0])
+			// fmt.Fprintf(os.Stdout, "Arg #%d (program name): %s\n", num, progName)
 			continue
 		}
 		fmt.Fprintf(os.Stdout, "Arg #%d: %s\n", num, each)
@@ -145,12 +129,6 @@ func VerboseCommand(commandList []string) {
 func CheckCommand(command string) {
 	//commandList := strings.Split(strings.ReplaceAll(command, "'", ""), " ")
 	commandList := strings.Split(command, " ")
-	// if len(commandList) > 2 {
-	// 	for x, v := range commandList {
-	// 		fmt.Fprintln(os.Stdout, x, ":", v)
-	// 	}
-	// }
-	// Check for exit
 	executable := commandList[0]
 	args := ExtractArgs(strings.Join(commandList[1:], " "))
 	commandList = nil
@@ -161,8 +139,8 @@ func CheckCommand(command string) {
 	case "exit":
 		code, err := strconv.ParseInt(commandList[1], 10, 16)
 		if err != nil {
-			fmt.Print(err)
-			os.Exit(1)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(0)
 		}
 		os.Exit(int(code))
 	case "echo":
@@ -202,7 +180,8 @@ func CheckCommand(command string) {
 				return
 			}
 		}
-
+	case "cat":
+		ExecuteCommand("cat", commandList)
 	default:
 		if pathIsSet {
 			// fmt.Println("[DEBUG]: switch hit default.")
@@ -216,7 +195,7 @@ func CheckCommand(command string) {
 		}
 		_, err := fmt.Printf("%s: command not found\n", commandList[0])
 		if err != nil {
-			fmt.Print(err)
+			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -259,8 +238,8 @@ func main() {
 				// "executableName":"path/to/executable"
 				// Using Load or Store instead of just Store to overwrite to latest exe
 				for _, file := range files {
-					pathCommands.LoadOrStore(file.Name(), fmt.Sprintf("%s/%s", dir, file.Name()))
-
+					// pathCommands.LoadOrStore(file.Name(), fmt.Sprintf("%s/%s", dir, file.Name()))
+					pathCommands.Store(file.Name(), fmt.Sprintf("%s/%s", dir, file.Name()))
 				}
 
 			}(v)
