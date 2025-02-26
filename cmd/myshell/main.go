@@ -24,6 +24,15 @@ var pathCommands sync.Map
 func ExtractArgs(argString string) []string {
 	var argsList []string
 	toggleCapture := false
+	for _, v := range argString {
+		// Instead of block check (implemented below), check per char
+		if v == ' ' && !toggleCapture{
+			continue
+		} 
+		if v == '\''{
+			toggleCapture=!toggleCapture
+		}
+	}
 	// Check if the args contain single quotes
 	if strings.ContainsRune(argString, '\'') {
 		// arg collector buffer
@@ -33,7 +42,7 @@ func ExtractArgs(argString string) []string {
 			if v == '\'' {
 				toggleCapture = !toggleCapture
 			}
-			// add character to buffer
+			// add quoted character to buffer
 			if toggleCapture && v != '\'' {
 				arg.WriteRune(v)
 			}
@@ -52,20 +61,29 @@ func ExtractArgs(argString string) []string {
 
 func EchoFormatter(printList []string) {
 	// fmt.Print(printList)
-	checkString := strings.Join(printList, " ")
-	if strings.ContainsAny(checkString, "'") {
-		// arg has single quotes
-		fmt.Println(strings.ReplaceAll(strings.Join(printList, " "), "'", ""))
-		return
-	}
-	filteredList := []string{}
-	for _, v := range printList {
-		if v == "" {
-			continue
+	var builder strings.Builder
+	quoteSwitch := false
+	for _, each := range printList {
+		
+		if strings.ContainsRune(each, '\'') {
+			quoteSwitch = !quoteSwitch
+			builder.
 		}
-		filteredList = append(filteredList, v)
 	}
-	fmt.Println(strings.Join(filteredList, " "))
+	// checkString := strings.Join(printList, " ")
+	// if strings.ContainsAny(checkString, "'") {
+	// 	// arg has single quotes
+	// 	fmt.Println(strings.ReplaceAll(strings.Join(printList, " "), "'", ""))
+	// 	return
+	// }
+	// filteredList := []string{}
+	// for _, v := range printList {
+	// 	if v == "" {
+	// 		continue
+	// 	}
+	// 	filteredList = append(filteredList, v)
+	// }
+	// fmt.Println(strings.Join(filteredList, " "))
 }
 
 func ReadUserInput() string {
