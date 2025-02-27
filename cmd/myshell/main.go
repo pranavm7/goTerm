@@ -72,7 +72,6 @@ func ListBuiltins(arg string) {
 	}
 	if pathIsSet {
 		if val, ok := pathCommands.Load(arg); ok {
-			// pathCommands.Range(func(key, value any) bool { fmt.Println(key, value); return true })
 			fmt.Fprintf(os.Stderr, "%s is %s\n", arg, val)
 			return
 		}
@@ -82,19 +81,13 @@ func ListBuiltins(arg string) {
 }
 
 func ExecuteCommand(binaryPath string, commandList []string) {
-	cmd := exec.Command(binaryPath, commandList[1:]...)
-	out, err := cmd.CombinedOutput()
-	output := string(out)
-	// output = strings.Replace(output, "\n", "", -1)
-	if err == nil {
-		// fmt.Println(string(output))
-		fmt.Fprint(os.Stdout, output)
-	}
+	cmd := exec.Command(commandList[0], commandList[1:]...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	err := cmd.Run()
 	if err != nil {
-		// fmt.Println(err)
 		fmt.Fprintln(os.Stderr, err)
 	}
-	//fmt.Println("EXITING EXEC COMMAND")
 }
 
 func VerboseCommand(commandList []string) {
@@ -116,25 +109,22 @@ func VerboseCommand(commandList []string) {
 				}
 				progName = pathList[len(pathList)-1]
 				fmt.Fprintf(os.Stdout, "Arg #0 (program name): %s\n", progName)
+				continue
 			}
 			fmt.Fprintf(os.Stdout, "Arg #0 (program name): %s\n", commandList[0])
-			// fmt.Fprintf(os.Stdout, "Arg #%d (program name): %s\n", num, progName)
 			continue
 		}
 		fmt.Fprintf(os.Stdout, "Arg #%d: %s\n", num, each)
 	}
-	// fmt.Println("EXITING VERBOSE COMMAND")
 }
 
 func CheckCommand(command string) {
-	//commandList := strings.Split(strings.ReplaceAll(command, "'", ""), " ")
 	commandList := strings.Split(command, " ")
 	executable := commandList[0]
 	args := ExtractArgs(strings.Join(commandList[1:], " "))
 	commandList = nil
 	commandList = append(commandList, executable)
 	commandList = append(commandList, args...)
-	// fmt.Println(strings.Join(commandList, ","))
 	switch commandList[0] {
 	case "exit":
 		code, err := strconv.ParseInt(commandList[1], 10, 16)
@@ -144,7 +134,6 @@ func CheckCommand(command string) {
 		}
 		os.Exit(int(code))
 	case "echo":
-		// fmt.Println(strings.Join(commandList[1:], " "))
 		EchoFormatter(commandList[1:])
 	case "type":
 		ListBuiltins(commandList[1])
@@ -184,11 +173,11 @@ func CheckCommand(command string) {
 		ExecuteCommand("cat", commandList)
 	default:
 		if pathIsSet {
-			// fmt.Println("[DEBUG]: switch hit default.")
 			// check if command exists in path
 			if binaryPath, ok := pathCommands.Load(commandList[0]); ok {
 				// proceed to be verbose about input
-				VerboseCommand(commandList)
+				// NOTE: commented out due to an interesting bug in codecrafters tester.
+				//VerboseCommand(commandList)
 				ExecuteCommand(binaryPath.(string), commandList)
 				return
 			}
@@ -205,7 +194,6 @@ func CheckCommand(command string) {
 func REPL() {
 	fmt.Fprint(os.Stdout, "$ ")
 	message := ReadUserInput()
-	// fmt.Println("[DEBUG]: in REPL")
 	CheckCommand(message)
 }
 
@@ -228,8 +216,8 @@ func main() {
 		for v := range numRoutines {
 			go func(v int) {
 				defer wg.Done()
-				//get source dir
-				dir := pathDirs[v]
+				//traverse the $PATH var in reverse to ensure the latest (traditionally) binary is the only one in list
+				dir := pathDirs[len(pathDirs)-v-1]
 				files, err := os.ReadDir(dir)
 				if err != nil {
 					return
@@ -239,6 +227,7 @@ func main() {
 				// Using Load or Store instead of just Store to overwrite to latest exe
 				for _, file := range files {
 					// pathCommands.LoadOrStore(file.Name(), fmt.Sprintf("%s/%s", dir, file.Name()))
+					// Choosing store over load or store since we want the overwrite.
 					pathCommands.Store(file.Name(), fmt.Sprintf("%s/%s", dir, file.Name()))
 				}
 
