@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/mattn/go-shellwords"
 )
 
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
@@ -23,29 +25,35 @@ var pathCommands sync.Map
 
 func ExtractArgs(argString string) []string {
 	var argsList []string
-	var build strings.Builder
-	toggleCapture := false
-	for _, v := range argString {
-		// Instead of block check (implemented below), check per char
-		if v == ' ' && !toggleCapture {
-			if build.Len() > 0 {
-				argsList = append(argsList, build.String())
-				build.Reset()
-			}
-			continue
-		}
-		if v == '\'' {
-			toggleCapture = !toggleCapture
-			continue
-		}
-		build.WriteRune(v)
+	// var build strings.Builder
+	// toggleCapture := false
+	// for _, v := range argString {
+	// 	// Instead of block check (implemented below), check per char
+	// 	if v == ' ' && !toggleCapture {
+	// 		if build.Len() > 0 {
+	// 			argsList = append(argsList, build.String())
+	// 			build.Reset()
+	// 		}
+	// 		continue
+	// 	}
+	// 	if v == '\'' {
+	// 		toggleCapture = !toggleCapture
+	// 		continue
+	// 	}
+	// 	build.WriteRune(v)
 
+	// }
+	// if build.Len() > 0 {
+	// 	argsList = append(argsList, build.String())
+	// 	build.Reset()
+	// }
+	argParser := shellwords.NewParser()
+	argParser.ParseBacktick = true
+	argParser.ParseEnv = true
+	argsList, err := argParser.Parse(argString)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 	}
-	if build.Len() > 0 {
-		argsList = append(argsList, build.String())
-		build.Reset()
-	}
-
 	return argsList
 }
 
